@@ -2,4 +2,4 @@
 # a script that that creates an RSA key pair.
 private_key="school"
 
-ssh-keygen -t rsa -b 4096 -f "$private_key" -C "school@example.com" -N "betty"
+ssh-keygen -t rsa -b 4096 -f "$private_key" -N "betty"

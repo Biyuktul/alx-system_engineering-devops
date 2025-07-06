@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
-# Configures Nginx to send a custom HTTP response header with the hostname
+# Bash Script that configures a brand new Ubuntu machine to create a custom header.
 
-# Install Nginx
-sudo apt-get update -y
-sudo apt-get install -y nginx
+sudo apt-get update
 
-# Get hostname
-HOSTNAME=$(hostname)
+sudo apt-get install nginx -y
 
-# Create header configuration file
-sudo bash -c "echo 'add_header X-Served-By \$hostname;' > /etc/nginx/conf.d/custom_header.conf"
+# create a hello world page
+echo "Hello World!" | sudo tee /var/www/html/index.html
 
-# Add the header include to default server block (if not already added)
-NGINX_DEFAULT="/etc/nginx/sites-available/default"
-if ! grep -q "include /etc/nginx/conf.d/custom_header.conf;" "$NGINX_DEFAULT"; then
-  sudo sed -i "/server {/a \    include /etc/nginx/conf.d/custom_header.conf;" "$NGINX_DEFAULT"
-fi
+# create a redirection for our website
+sudo sed -i '/server_name _;/a \\n location /redirect_me { \n rewrite ^ https://www.youtube.com/watch?v=QH2-TGUlwu4 permanent; \n }' /etc/nginx/sites-available/default
 
-# Restart nginx
-sudo systemctl restart nginx
+# Create a custom 404 page
+echo "Ceci n'est pas une page" | sudo tee /var/www/html/custom_404.html
+
+# Configure Nginx to use the custom 404 page
+sudo sed -i '/server_name _;/a \n error_page 404 /custom_404.html;\n location = /custom_404.html {\n internal;\n}' /etc/nginx/sites-available/default
+
+# Add custom header configuration to Nginx
+sudo sed -i '/server {/a \n add_header X-Served-By '"$hostname"';' /etc/nginx/sites-available/default
+
+# restart the web server after updating the settings
+sudo systemctl start nginx

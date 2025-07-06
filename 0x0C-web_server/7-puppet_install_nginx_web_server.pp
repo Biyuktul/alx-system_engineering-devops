@@ -1,46 +1,25 @@
-# Puppet manifest to install Nginx, serve "Hello World!" at root,
-# and create a 301 redirect from /redirect_me
+# Script to install nginx using puppet
 
-# Ensure nginx is installed and running
-package { 'nginx':
-  ensure => installed,
+package {'nginx':
+  ensure => 'present',
 }
 
-service { 'nginx':
-  ensure     => running,
-  enable     => true,
-  hasrestart => true,
-  require    => Package['nginx'],
+exec {'install':
+  command  => 'sudo apt-get update ; sudo apt-get -y install nginx',
+  provider => shell,
+
 }
 
-# Create the custom index.html with "Hello World!" at root
-file { '/var/www/html/index.html':
-  ensure  => file,
-  content => 'Hello World!',
-  require => Package['nginx'],
+exec {'Hello':
+  command  => 'echo "Hello World!" | sudo tee /var/www/html/index.html',
+  provider => shell,
 }
 
-# Configure the redirect and root page using nginx site config
-file { '/etc/nginx/sites-available/default':
-  ensure  => file,
-  content => @(EOF),
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-
-    root /var/www/html;
-    index index.html;
-
-    server_name _;
-
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
-
-    location = /redirect_me {
-        return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
-    }
+exec {'sudo sed -i "s/listen 80 default_server;/listen 80 default_server;\\n\\tlocation \/redirect_me {\\n\\t\\treturn 301 https:\/\/blog.ehoneahobed.com\/;\\n\\t}/" /etc/nginx/sites-available/default':
+  provider => shell,
 }
-  | EOF
-  notify  => Service['nginx'],
+
+exec {'run':
+  command  => 'sudo service nginx restart',
+  provider => shell,
 }

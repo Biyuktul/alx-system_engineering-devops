@@ -1,24 +1,16 @@
-# 2-puppet_custom_http_response_header.pp
-# Puppet manifest to install and configure Nginx with a custom HTTP response header
+# create a custom HTTP header response using Puppet
 
-package { 'nginx':
-  ensure => installed,
+exec {'get-update':
+    command => '/usr/bin/apt-get update',
 }
-
-service { 'nginx':
-  ensure     => running,
-  enable     => true,
-  subscribe  => File['/etc/nginx/sites-available/default'],
+-> package {'nginx':
+    ensure => 'present',
 }
-
-file { '/etc/nginx/sites-available/default':
-  ensure  => file,
-  mode    => '0644',
-  content => template('nginx/custom_header.erb'),
-  require => Package['nginx'],
+-> file_line {'http_header':
+    path  => '/etc/nginx/nginx.conf',
+    match => 'http {',
+    line  => "http {\n\tadd_header X-Served-By \"${hostname}\";",
 }
-
-file { '/etc/nginx/sites-enabled/default':
-  ensure => link,
-  target => '/etc/nginx/sites-available/default',
+-> exec {'run':
+    command => '/usr/sbin/service nginx restart',
 }

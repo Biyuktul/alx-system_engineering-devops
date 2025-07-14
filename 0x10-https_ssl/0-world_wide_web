@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
-# Script to query subdomain names and record types
+# Script to audit DNS records for given domain and subdomains
 
-dns_conf () {
-    script=$(dig "$2"."$1" | grep -A1 'ANSWER SECTION:' | tr '\t' '\n' | tail -2 | tr '\n' ' ')
-    echo "$2 $script" | awk '{print "The subdomain " $1 " is a " $2 " record and points to " $3}'
+# Function to perform DNS lookup and display results
+get_record_info() {
+    local full_domain=$1
+    record_info=$(dig "$full_domain" | awk '/^;; ANSWER SECTION:/{getline; print}')
+    record_type=$(echo "$record_info" | awk '{print $3}')
+    destination=$(echo "$record_info" | awk '{print $5}')
+    echo "The subdomain ${full_domain%%.*} is a $record_type record and points to $destination"
 }
 
-if [ "$#" == 1 ]
-then
-  dns_conf "$1" "www"
-  dns_conf "$1" "lb-01"
-  dns_conf "$1" "web-01"
-  dns_conf "$1" "web-02"
-elif [ "$#" == 2 ]
-then
-  dns_conf "$1" "$2"
+# Main logic
+domain=$1
+subdomain=$2
+
+if [ -z "$subdomain" ]; then
+    for sub in www lb-01 web-01 web-02; do
+        get_record_info "$sub.$domain"
+    done
+else
+    get_record_info "$subdomain.$domain"
 fi
